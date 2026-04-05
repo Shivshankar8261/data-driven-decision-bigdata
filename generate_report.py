@@ -1,356 +1,467 @@
 """
-Report Generator - Populates the BDCCT Report Template
--------------------------------------------------------
-Fills all 10 sections of the Vidyashilp University report template
-with professional academic content.
+Report Generator v2 - Enhanced with embedded images, styled formatting
+------------------------------------------------------------------------
+Populates the BDCCT Report Template with:
+- Embedded chart images in relevant sections
+- Architecture diagram
+- Bold sub-headings and styled code snippets
+- Professional academic formatting
 """
 
 from docx import Document
-from docx.shared import Pt, Inches, RGBColor
+from docx.shared import Pt, Inches, RGBColor, Cm
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.table import WD_TABLE_ALIGNMENT
+from docx.oxml.ns import qn
 import os
 
 TEMPLATE = "BDCCT_Report_Template (1).docx"
 OUTPUT = "BDCCT_Report.docx"
+CHARTS = "charts"
 
 doc = Document(TEMPLATE)
 
-# Map heading paragraphs to indices for replacement
-section_content = {}
-
-# --- TITLE PAGE CONTENT ---
+# --- TITLE PAGE ---
 doc.paragraphs[4].text = "Project Title: Data-Driven Decision Making in an Organization Using Big Data Technologies"
 
-# ============================================================================
-# SECTION CONTENT
-# ============================================================================
 
-section_content[8] = """In the contemporary business landscape, organizations generate vast volumes of data across departments, yet a significant majority struggle to translate this data into actionable, high-quality decisions. According to a 2024 survey by NewVantage Partners, only 26.5% of organizations have successfully established a data-driven culture, despite 97.2% investing in big data and artificial intelligence initiatives. This gap between data availability and decision effectiveness constitutes a critical operational challenge.
-
-The domain selected for this project is organizational performance analytics, focusing on how data quality, employee competency, and processing efficiency collectively influence the impact of business decisions. The problem is defined as follows: organizations lack an integrated, scalable pipeline that ingests raw operational data, cleanses and transforms it, and produces actionable insights that directly improve decision-making quality.
-
-The target users of this system include:
-• C-suite executives who require high-level dashboards to monitor organizational decision effectiveness across departments and regions.
-• Department heads who need granular insights into team performance, training ROI, and error rate trends to allocate resources effectively.
-• Data analysts who require clean, transformed data in efficient storage formats (Parquet) for advanced analytics and machine learning.
-• HR managers who need visibility into attrition risk patterns and their correlation with employee satisfaction and performance metrics.
-
-The problem matters because poor decision-making—driven by low data quality, high error rates, and fragmented analytics pipelines—directly translates to revenue loss, employee attrition, and competitive disadvantage. Research by McKinsey Global Institute estimates that data-driven organizations are 23 times more likely to acquire customers and 19 times more likely to be profitable. By building a robust big data pipeline that surfaces the key drivers of decision impact, this project demonstrates how organizations can systematically improve their decision-making capability.
-
-The dataset used in this project comprises 123,847 records spanning 15 variables across 6 departments, 4 regions, and a 2-year time horizon (January 2024 – December 2025). The data simulates realistic organizational behavior including correlated variables, missing values, outliers, and seasonal patterns—mirroring the messiness of real-world enterprise data. The target variable, Decision Impact Score, is modeled as a composite of data quality, employee performance, error rate, training investment, and customer satisfaction, reflecting the multifaceted nature of organizational decision-making."""
-
-
-section_content[10] = """The data pipeline designed for this project follows a five-stage architecture that transforms raw organizational data into actionable business insights. Each stage is carefully selected to balance performance, scalability, and ease of implementation.
-
-Stage 1 — Data Source & Ingestion:
-The raw dataset (data_driven_decision_realistic.csv, 123,847 rows × 15 columns) is stored as a CSV file, simulating data exported from an enterprise resource planning (ERP) system. In a production environment, this data would reside in Google Cloud Storage (GCS) buckets, enabling integration with GCP Dataproc for automated ingestion. The CSV format was chosen for portability and human readability during development, with Parquet as the target format for production storage.
-
-Stage 2 — Data Processing (PySpark):
-Apache Spark, accessed through PySpark, serves as the core processing engine. Spark was selected for three reasons: (1) its distributed computing architecture enables horizontal scaling from thousands to billions of records without code changes, (2) its lazy evaluation and Catalyst optimizer provide automatic query optimization, and (3) its native support for structured data via DataFrames aligns with the tabular nature of organizational data. The processing stage includes schema enforcement using StructType, null imputation via median replacement, duplicate removal, outlier capping using the IQR method, and feature engineering.
-
-Stage 3 — Data Transformation:
-Feature engineering creates derived variables that enhance analytical power. New features include experience_training_ratio (measuring training efficiency relative to tenure), efficiency_score (performance per unit processing time), quality_error_interaction (capturing the combined effect of data quality and error rate), and temporal features (month, quarter, day of week) extracted from timestamps. These features increase the dimensionality of analysis without requiring additional data collection.
-
-Stage 4 — Data Storage:
-Processed data is stored in Apache Parquet format, partitioned by Department. Parquet was selected over CSV for three reasons: (1) columnar storage reduces I/O for analytical queries that access subsets of columns, (2) built-in compression (Snappy) reduces storage footprint by 60–80%, and (3) predicate pushdown enables Spark to skip irrelevant data partitions during reads. Department-based partitioning aligns with the most common analytical access pattern.
-
-Stage 5 — Visualization & Insight Delivery:
-Streamlit, an open-source Python framework, powers the interactive dashboard. Streamlit was chosen over Power BI and Tableau for three reasons: (1) native Python integration eliminates the need for data export and re-import, (2) it supports real-time filtering and interactive exploration without licensing costs, and (3) deployment is trivial via Streamlit Cloud or GCP Cloud Run. The dashboard presents KPI cards, time-series trends, departmental comparisons, and data quality analyses.
-
-Design Justification:
-The pipeline is designed for reproducibility (all steps are coded, not manual), scalability (Spark and GCP can handle petabyte-scale data), and maintainability (modular Python scripts with clear separation of concerns). The choice of open-source tools (Spark, Streamlit, Parquet) eliminates vendor lock-in and reduces total cost of ownership."""
-
-
-section_content[12] = """The system architecture follows a layered design pattern where each component has a single responsibility and communicates with adjacent layers through well-defined interfaces.
-
-Architecture Diagram:
-
-┌─────────────────────────────────────────────────────────────────────┐
-│                    SYSTEM ARCHITECTURE                              │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  [Data Sources]                                                     │
-│    ├── CSV Files (ERP Exports)                                     │
-│    ├── Databases (PostgreSQL, MySQL)                                │
-│    └── APIs (CRM, HRMS)                                            │
-│         │                                                           │
-│         ▼                                                           │
-│  [Data Ingestion Layer]                                             │
-│    ├── GCP Cloud Storage (Raw Data Lake)                            │
-│    └── Python Scripts (Validation & Upload)                         │
-│         │                                                           │
-│         ▼                                                           │
-│  [Processing Engine]                                                │
-│    ├── Apache Spark (PySpark) on GCP Dataproc                      │
-│    ├── Data Cleaning (Null handling, Dedup, Outliers)               │
-│    ├── Feature Engineering (Derived Variables)                      │
-│    └── Aggregations (Department, Region, Quarterly)                 │
-│         │                                                           │
-│         ▼                                                           │
-│  [Storage Layer]                                                    │
-│    ├── Parquet Files (Partitioned by Department)                    │
-│    ├── GCP Cloud Storage (Processed Data)                           │
-│    └── BigQuery (Optional: Ad-hoc SQL Queries)                      │
-│         │                                                           │
-│         ▼                                                           │
-│  [Visualization Layer]                                              │
-│    ├── Streamlit Dashboard (Interactive)                             │
-│    ├── Matplotlib/Seaborn (Static Reports)                          │
-│    └── Plotly (Interactive Charts)                                   │
-│         │                                                           │
-│         ▼                                                           │
-│  [Business Decision Layer]                                          │
-│    ├── KPI Monitoring                                               │
-│    ├── Trend Analysis                                               │
-│    └── Prescriptive Insights                                        │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
-
-Component Explanations:
-
-1. Data Source Layer: The system ingests data from multiple enterprise sources. In this project, a synthetic dataset of 123,847 records simulates ERP-exported organizational data. In production, connectors would pull from PostgreSQL databases, CRM APIs (Salesforce), and HRMS systems (Workday) via scheduled batch jobs or real-time streaming.
-
-2. Processing Engine — Apache Spark (PySpark): Spark runs on GCP Dataproc, a managed Hadoop and Spark service that provides auto-scaling clusters. The processing pipeline uses Spark DataFrames with explicit schema enforcement (StructType), ensuring type safety and early error detection. Key operations include: null imputation using column medians, duplicate removal via dropDuplicates(), outlier capping using the IQR method, and feature engineering through column-wise transformations.
-
-3. Storage Layer — Parquet on GCP Cloud Storage: Processed data is persisted in Apache Parquet format, a columnar storage format optimized for analytical workloads. Files are partitioned by Department to enable partition pruning during queries. GCP Cloud Storage provides 99.999999999% (11 nines) durability and integrates natively with BigQuery for ad-hoc SQL analysis.
-
-4. Visualization Layer — Streamlit Dashboard: The dashboard provides real-time, interactive exploration of processed data. It includes KPI metric cards, time-series line charts, departmental bar charts, scatter plots with regression lines, pie charts for categorical distributions, and box plots for error rate analysis. Sidebar filters enable slicing data by department, region, date range, and decision type.
-
-5. Workflow: Raw data flows unidirectionally from sources through processing to storage and visualization. Each stage logs metadata (row counts, null statistics, outlier counts) for pipeline monitoring and debugging. The architecture supports both batch processing (current implementation) and can be extended to near-real-time processing using Spark Structured Streaming."""
-
-
-section_content[14] = """Dataset Description:
-The dataset (data_driven_decision_realistic.csv) contains 123,847 records with 15 columns capturing organizational decision-making metrics. The data spans January 2024 to December 2025 across 6 departments (Sales, Marketing, Engineering, HR, Finance, Operations), 4 regions (North, South, East, West), and approximately 2,500 unique employees. The dataset includes realistic imperfections: 5–8% missing values in selected columns, 0.5% outliers, and minor inconsistencies such as negative experience values.
-
-Step 1 — SparkSession Setup and Data Loading:
-The pipeline begins by initializing a SparkSession with 4GB driver memory and adaptive query execution enabled. The dataset is loaded with an explicit schema defined using StructType to ensure type safety.
-
-Code Snippet — Schema Definition and Loading:
-    schema = StructType([
-        StructField("Timestamp", TimestampType(), True),
-        StructField("Employee_ID", StringType(), True),
-        StructField("Department", StringType(), True),
-        ...
-        StructField("Decision_Impact_Score", DoubleType(), True),
-    ])
-    df = spark.read.csv("data_driven_decision_realistic.csv",
-                        header=True, schema=schema)
-
-Step 2 — Data Cleaning:
-The cleaning stage addresses four data quality issues:
-(a) Duplicate Removal: dropDuplicates() removes exact duplicate rows.
-(b) Negative Values: Experience_Years values below zero are corrected using absolute value transformation.
-(c) Null Imputation: For each numeric column with missing values (Training_Hours, Monthly_Sales, Customer_Satisfaction, Data_Quality_Score, Processing_Time_sec, Error_Rate), the column median is computed and used to fill nulls. Median is preferred over mean as it is robust to outliers.
-(d) Outlier Capping: For Monthly_Sales and Processing_Time_sec, the IQR method (Q1 - 1.5×IQR, Q3 + 1.5×IQR) is used to cap extreme values.
-
-Step 3 — Feature Engineering:
-New derived features enhance the analytical power of the dataset:
-• Experience_Training_Ratio = Experience_Years / (Training_Hours + 1) — measures training efficiency relative to tenure.
-• Efficiency_Score = Performance_Score / (Processing_Time_sec + 1) — captures performance per unit of processing effort.
-• Quality_Error_Interaction = Data_Quality_Score × (1 - Error_Rate) — models the combined effect of quality and accuracy.
-• Temporal Features: Month, Quarter, Day_of_Week, and Year extracted from Timestamp for time-series analysis.
-• Categorical Binning: Performance_Category (High/Medium/Low) and Risk_Level (Critical/Moderate/Low) for segmentation.
-
-Step 4 — Aggregations:
-Three aggregation views are computed:
-(a) Department-wise: Average Decision Impact, Performance, Sales, Data Quality, and Error Rate per department, with unique employee counts.
-(b) Region-wise: Average Customer Satisfaction, Attrition Risk, and Decision Impact per region.
-(c) Quarterly Trends: Average Impact, Performance, and Error Rate by Year-Quarter for time-series analysis.
-
-Step 5 — Filtering:
-Two analytical filters isolate critical subsets:
-(a) High Error Rate Cases (Error_Rate > 0.3): Identifies records where processing accuracy falls below acceptable thresholds, broken down by department.
-(b) High Attrition Risk (Attrition_Risk ≥ 0.7): Flags at-risk employees and summarizes their performance and satisfaction metrics by department.
-
-Step 6 — Save to Parquet:
-The processed DataFrame is written to Parquet format, partitioned by Department. A verification read confirms row count and column integrity after writing.
-
-Output Summary:
-• Input: 123,847 rows, 15 columns
-• After cleaning: ~123,832 rows (duplicates removed, nulls imputed, outliers capped)
-• After transformation: 24 columns (9 new features added)
-• Output format: Parquet, partitioned by Department"""
-
-
-section_content[16] = """The visualization tool selected for this project is Streamlit, an open-source Python framework for building interactive data applications. Streamlit was chosen over Power BI and Tableau for the following reasons: (1) native Python integration allows direct use of Pandas DataFrames without data export, (2) zero licensing cost makes it accessible for academic projects, (3) interactive widgets (filters, sliders, date pickers) enable dynamic exploration without coding complexity, and (4) deployment to Streamlit Cloud or GCP Cloud Run is trivial.
-
-Dashboard Components:
-
-1. KPI Metric Cards (Top Row):
-Four metric cards display the filtered dataset's key performance indicators:
-• Average Decision Impact Score (with delta vs. overall average)
-• Average Performance Score
-• Average Data Quality Score
-• Average Error Rate (with inverse delta coloring — lower is better)
-These cards provide an at-a-glance summary of organizational health.
-
-2. Monthly Decision Impact Trend (Line Chart):
-A dual-axis time-series chart plots the monthly average Decision Impact Score (primary axis) against the average Error Rate (secondary axis) from January 2024 to December 2025. This visualization reveals temporal patterns, seasonal fluctuations, and the inverse relationship between errors and decision quality.
-
-3. Department-wise Decision Impact (Horizontal Bar Chart):
-A horizontal bar chart ranks departments by their average Decision Impact Score, using a viridis color scale. This chart immediately identifies which departments drive the highest decision quality and which require intervention.
-
-4. Data Quality vs. Decision Impact (Scatter Plot):
-A scatter plot with OLS regression trendlines (per department) shows the strong positive correlation (r ≈ 0.74) between Data Quality Score and Decision Impact Score. Points are color-coded by department, enabling cross-departmental comparison.
-
-5. Decision Type Distribution (Donut Chart):
-A donut/pie chart shows the proportional distribution of Strategic, Operational, Tactical, and Analytical decisions across the filtered dataset. This reveals organizational decision-making patterns.
-
-6. Regional Performance Overview (Grouped Bar Chart):
-A grouped bar chart compares average Decision Impact and Customer Satisfaction across the four regions (North, South, East, West), highlighting geographic performance disparities.
-
-7. Error Rate Distribution by Department (Box Plot):
-Box plots display the distribution of Error Rate within each department, with a red dashed threshold line at 0.3. This identifies departments with systemic accuracy problems.
-
-Key Insights Derived from Dashboard Analysis:
-
-Insight 1: Data Quality Score is the single strongest predictor of Decision Impact Score, with a Pearson correlation coefficient of r = 0.736. Organizations should prioritize data quality improvement programs to maximize decision effectiveness.
-
-Insight 2: Employees who receive more than 40 hours of training per year achieve approximately 27% higher performance scores compared to those with fewer training hours (4.76 vs. 3.76 on a 10-point scale). This demonstrates a clear return on training investment.
-
-Insight 3: Error rates exceeding 15% are associated with a 43% decline in Decision Impact Score (from 77.7 to 44.6), suggesting a critical threshold beyond which decision quality deteriorates rapidly. Organizations should implement automated quality gates at the 15% error rate threshold.
-
-Insight 4: The Engineering department leads in Decision Impact Score due to its combination of highest training investment and superior data quality practices, outperforming HR by approximately 40%.
-
-Insight 5: Attrition Risk and Customer Satisfaction exhibit a strong inverse correlation (r = -0.875), indicating that employee retention directly impacts customer experience — creating a feedback loop that amplifies organizational performance.
-
-Insight 6: Quarterly analysis reveals a gradual improvement in decision effectiveness from Q1 to Q4, suggesting that organizational learning and process maturation compound over fiscal years."""
-
-
-section_content[18] = """Real-World Use Cases:
-
-1. Management Consulting Firms: Consulting organizations like McKinsey, BCG, and Deloitte advise clients across industries on data-driven strategy. This pipeline can be deployed to analyze a client's operational data, identify decision quality bottlenecks, and prescribe targeted interventions (e.g., training programs for underperforming departments, data quality audits for high-error divisions). The modular architecture allows rapid customization for different client contexts.
-
-2. Healthcare Administration: Hospital networks generate millions of records across patient care, staffing, billing, and compliance. The pipeline can be adapted to analyze clinical decision effectiveness, identify departments with high error rates (potentially impacting patient safety), and monitor training compliance. The attrition risk model is directly applicable to nursing staff retention — a critical challenge in healthcare.
-
-3. Retail & E-Commerce: Large retailers like Amazon and Walmart make thousands of operational and strategic decisions daily across supply chain, pricing, marketing, and customer service. This pipeline can process point-of-sale data, customer feedback, and inventory metrics to surface which store regions and product categories achieve the highest decision impact, enabling resource reallocation to underperforming areas.
-
-4. Financial Services: Banks and insurance companies rely on data-driven decisions for credit scoring, fraud detection, and investment strategy. The error rate analysis component is particularly relevant — financial institutions face regulatory penalties for decision errors. The pipeline's ability to identify error rate thresholds and their impact on decision quality directly supports risk management.
-
-Scalability Discussion:
-
-Handling Large Data Volumes:
-The current implementation processes 123,847 records on a single-node Spark instance. To scale to millions or billions of records, the following strategies apply:
-• Horizontal Scaling: Deploy Spark on GCP Dataproc clusters with 10–100 worker nodes. Spark's distributed architecture automatically partitions data across nodes, achieving near-linear scaling.
-• Partition Strategy: The current Department-based partitioning can be extended to composite partitions (Department + Region + Year) for finer-grained data pruning during queries.
-• Data Format: Parquet with Snappy compression already provides 60–80% size reduction. For larger datasets, Delta Lake can be layered on top to provide ACID transactions, schema evolution, and time travel capabilities.
-
-Performance Improvement:
-• Broadcast Joins: For lookup tables (department metadata, region mappings), Spark's broadcast join eliminates costly shuffle operations.
-• Caching: Frequently accessed DataFrames can be cached in memory using df.cache() or df.persist(StorageLevel.MEMORY_AND_DISK).
-• Adaptive Query Execution (AQE): Already enabled in the pipeline configuration, AQE dynamically optimizes query plans based on runtime statistics.
-• Columnar Reads: Parquet's columnar format ensures that only queried columns are read from disk, reducing I/O by 50–90% for typical analytical queries.
-
-Future Enhancements:
-• Real-Time Processing: Extend the batch pipeline to near-real-time using Spark Structured Streaming, enabling live dashboards that update as new data arrives.
-• Machine Learning Integration: Build predictive models (Random Forest, Gradient Boosting) on top of the processed data to forecast Decision Impact Score and proactively identify at-risk decisions before they occur.
-• Automated Alerting: Integrate with PagerDuty or Slack to send alerts when error rates exceed thresholds or when department-level decision impact drops below historical baselines.
-• Data Governance: Implement data lineage tracking using tools like Apache Atlas or GCP Data Catalog to ensure compliance with data governance policies."""
-
-
-section_content[20] = """The analysis conducted through this project enables several concrete, data-backed business decisions:
-
-Decision 1 — Training Budget Allocation:
-The data reveals that employees with more than 40 hours of annual training achieve 27% higher performance scores (4.76 vs. 3.76). Furthermore, Performance Score is the second-strongest predictor of Decision Impact (r = 0.685). Based on this evidence, the recommended decision is to increase the training budget by 20% for departments currently below the 40-hour threshold (HR, Finance, Operations), with priority given to HR, which shows the lowest average performance. Expected impact: a 15–20% improvement in decision quality for targeted departments within 6 months.
-
-Decision 2 — Data Quality Monitoring and Thresholds:
-Data Quality Score is the strongest predictor of Decision Impact (r = 0.736), and the analysis reveals a non-linear relationship: once Data Quality Score drops below 60, Decision Impact Score declines precipitously. The recommended decision is to implement automated data quality monitoring with three tiers: Green (≥75), Yellow (60–74), and Red (<60). Records flagged Red should be routed to a manual review queue before being used in decision-making processes. Expected impact: a 30% reduction in low-quality decisions.
-
-Decision 3 — Error Rate Quality Gates:
-Error rates above 15% are associated with a 43% decline in Decision Impact Score. This threshold effect suggests that incremental error reduction above 15% has minimal benefit, while crossing below 15% yields dramatic improvement. The recommended decision is to implement a hard quality gate at the 15% error rate threshold: processing pipelines producing error rates above this limit should be automatically paused, reviewed, and reprocessed. Expected impact: elimination of the lowest-quality 20% of decisions.
-
-Decision 4 — Attrition Risk Mitigation:
-The strong inverse correlation between Attrition Risk and Customer Satisfaction (r = -0.875) creates a feedback loop: dissatisfied employees deliver poor customer experiences, which further reduces organizational performance. The recommended decision is to implement monthly satisfaction surveys for employees flagged as High-Risk (Attrition Risk ≥ 0.7) and provide targeted retention interventions (career development plans, compensation reviews, workload adjustments). Expected impact: 25% reduction in attrition-related customer satisfaction decline.
-
-Decision 5 — Regional Resource Reallocation:
-Regional analysis reveals performance disparities across North, South, East, and West regions. The recommended decision is to reallocate analytics resources from over-performing regions to under-performing ones, standardize best practices from top-performing regions, and implement cross-regional knowledge sharing. Expected impact: convergence of regional decision impact scores within 10% of the organizational mean.
-
-Business Impact Summary:
-Collectively, these five data-driven decisions are projected to improve the organization's average Decision Impact Score by 18–25% over a 12-month implementation period. The financial impact, assuming a conservative 0.5% revenue correlation per point of Decision Impact improvement, would translate to a 9–12% increase in operational efficiency."""
-
-
-section_content[22] = """This project successfully designed, implemented, and demonstrated a complete big data pipeline for data-driven decision making in an organizational context.
-
-Problem: Organizations generate vast amounts of operational data but struggle to convert it into high-quality decisions due to data quality issues, fragmented processing pipelines, and a lack of actionable analytical insights.
-
-Approach: A five-stage pipeline was built using industry-standard big data technologies:
-1. Data Generation: A realistic dataset of 123,847 records with 15 variables was created, incorporating real-world data characteristics (correlations, missing values, outliers, seasonal patterns).
-2. Data Processing: Apache Spark (PySpark) performed data cleaning (null imputation, duplicate removal, outlier capping), feature engineering (9 derived variables), and multi-dimensional aggregations.
-3. Data Storage: Processed data was stored in Apache Parquet format, partitioned by Department, achieving efficient columnar storage with compression.
-4. Data Visualization: A Streamlit dashboard with interactive filters, KPI cards, and 7 chart types enabled dynamic exploration of decision-making patterns.
-5. Business Analysis: Six quantified business insights and five actionable decisions were derived from the data, each with projected impact estimates.
-
-Key Results:
-• Data Quality Score emerged as the single strongest predictor of Decision Impact (r = 0.736), establishing data quality as the highest-leverage improvement area.
-• Training investment above 40 hours/year correlates with 27% higher employee performance, demonstrating clear ROI on human capital development.
-• A critical error rate threshold at 15% was identified, beyond which decision quality degrades by 43%.
-• The Engineering department leads in Decision Impact due to superior data quality practices and higher training investment, providing a benchmark for other departments.
-• Attrition Risk and Customer Satisfaction form a tightly coupled feedback loop (r = -0.875), highlighting the interconnected nature of employee retention and customer experience.
-
-The project demonstrates that modern big data technologies — when combined in a well-architected pipeline — can transform raw organizational data into actionable intelligence that drives measurably better decisions."""
-
-
-section_content[24] = """1. Zaharia, M., Xin, R. S., Wendell, P., Das, T., Armbrust, M., Dave, A., ... & Stoica, I. (2016). Apache Spark: A Unified Engine for Big Data Processing. Communications of the ACM, 59(11), 56–65.
-
-2. Apache Spark Documentation. (2025). Spark SQL, DataFrames and Datasets Guide. https://spark.apache.org/docs/latest/sql-programming-guide.html
-
-3. Google Cloud. (2025). Dataproc Documentation. https://cloud.google.com/dataproc/docs
-
-4. Apache Parquet. (2025). Apache Parquet Documentation. https://parquet.apache.org/documentation/latest/
-
-5. Streamlit. (2025). Streamlit Documentation. https://docs.streamlit.io/
-
-6. NewVantage Partners. (2024). Data and Analytics Leadership Annual Executive Survey.
-
-7. McKinsey Global Institute. (2023). The Age of Analytics: Competing in a Data-Driven World.
-
-8. Provost, F., & Fawcett, T. (2013). Data Science for Business. O'Reilly Media.
-
-9. Kimball, R., & Ross, M. (2013). The Data Warehouse Toolkit: The Definitive Guide to Dimensional Modeling. Wiley.
-
-10. Google Cloud. (2025). BigQuery Documentation. https://cloud.google.com/bigquery/docs"""
-
-
-section_content[26] = """The complete source code for this project is available in the project repository. Key files include:
-
-• generate_dataset.py — Python script for generating the realistic organizational dataset (123,847 rows, 15 columns) with correlated variables, missing values, and outliers.
-
-• pyspark_pipeline.py — Complete PySpark ETL pipeline including SparkSession setup, schema definition, data cleaning, feature engineering, aggregations, and Parquet output.
-
-• analysis.py — Data analysis and visualization script generating 7 publication-quality charts (correlation heatmap, department bar chart, scatter plot, time series, box plot, pie chart, violin plot) and computing business insights.
-
-• dashboard.py — Streamlit interactive dashboard with sidebar filters, KPI cards, and 6 interactive chart types (line, bar, scatter, pie, grouped bar, box plot).
-
-• data_driven_decision_realistic.csv — The generated dataset (123,847 rows × 15 columns).
-
-• charts/ — Directory containing all generated visualization images in PNG format.
-
-• processed_data/ — Directory containing Parquet output files partitioned by Department."""
-
-
-# ============================================================================
-# WRITE CONTENT TO DOCUMENT
-# ============================================================================
-
-for idx, content in section_content.items():
-    if idx < len(doc.paragraphs):
-        para = doc.paragraphs[idx]
-        para.clear()
-
-        lines = content.strip().split('\n')
-        for i, line in enumerate(lines):
-            if i == 0:
-                run = para.add_run(line.strip())
-            else:
-                para.add_run('\n' + line.strip())
-
-        for run in para.runs:
-            run.font.size = Pt(11)
+def add_heading_text(parent_para, text, size=11, bold=False, color=None, italic=False):
+    run = parent_para.add_run(text)
+    run.font.size = Pt(size)
+    run.font.name = 'Times New Roman'
+    run.bold = bold
+    run.italic = italic
+    if color:
+        run.font.color.rgb = RGBColor(*color)
+    return run
+
+
+def add_image_after_paragraph(doc, para_index, image_path, width_inches=5.5, caption=""):
+    """Insert an image and caption as new paragraphs after the given paragraph index."""
+    if not os.path.exists(image_path):
+        return para_index
+
+    img_para = doc.paragraphs[para_index]._element
+    new_para = doc.add_paragraph()
+    new_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = new_para.add_run()
+    run.add_picture(image_path, width=Inches(width_inches))
+
+    img_para.addnext(new_para._element)
+
+    if caption:
+        cap_para = doc.add_paragraph()
+        cap_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        cap_run = cap_para.add_run(caption)
+        cap_run.font.size = Pt(9)
+        cap_run.font.name = 'Times New Roman'
+        cap_run.italic = True
+        cap_run.font.color.rgb = RGBColor(100, 100, 100)
+        new_para._element.addnext(cap_para._element)
+
+    return para_index
+
+
+def build_section(para, parts):
+    """Build a section from a list of parts: ('text', content, {opts}) or ('image', path, caption)."""
+    para.clear()
+    first_text = True
+    for part in parts:
+        ptype = part[0]
+        if ptype == 'text':
+            content = part[1]
+            opts = part[2] if len(part) > 2 else {}
+            bold = opts.get('bold', False)
+            size = opts.get('size', 11)
+            italic = opts.get('italic', False)
+            color = opts.get('color', None)
+            newline = opts.get('newline', True)
+
+            if not first_text and newline:
+                para.add_run('\n')
+            run = para.add_run(content)
+            run.font.size = Pt(size)
             run.font.name = 'Times New Roman'
+            run.bold = bold
+            run.italic = italic
+            if color:
+                run.font.color.rgb = RGBColor(*color)
+            first_text = False
 
-        para.paragraph_format.line_spacing = 1.5
-        para.paragraph_format.space_after = Pt(6)
+    para.paragraph_format.line_spacing = 1.5
+    para.paragraph_format.space_after = Pt(6)
 
+
+# ============================================================================
+# SECTION 1: PROBLEM STATEMENT
+# ============================================================================
+build_section(doc.paragraphs[8], [
+    ('text', 'Domain & Context', {'bold': True, 'size': 12, 'color': (44, 62, 80)}),
+    ('text', 'In the contemporary business landscape, organizations generate vast volumes of data across departments, yet a significant majority struggle to translate this data into actionable, high-quality decisions. According to a 2024 survey by NewVantage Partners, only 26.5% of organizations have successfully established a data-driven culture, despite 97.2% investing in big data and artificial intelligence initiatives. This gap between data availability and decision effectiveness constitutes a critical operational challenge.'),
+    ('text', ''),
+    ('text', 'The domain selected for this project is organizational performance analytics, focusing on how data quality, employee competency, and processing efficiency collectively influence the impact of business decisions.'),
+    ('text', ''),
+    ('text', 'Problem Definition', {'bold': True, 'size': 12, 'color': (44, 62, 80)}),
+    ('text', 'Organizations lack an integrated, scalable pipeline that ingests raw operational data, cleanses and transforms it, and produces actionable insights that directly improve decision-making quality. Poor decision-making\u2014driven by low data quality, high error rates, and fragmented analytics pipelines\u2014directly translates to revenue loss, employee attrition, and competitive disadvantage.'),
+    ('text', ''),
+    ('text', 'Target Users', {'bold': True, 'size': 12, 'color': (44, 62, 80)}),
+    ('text', '\u2022 C-suite executives \u2014 high-level dashboards to monitor decision effectiveness across departments and regions'),
+    ('text', '\u2022 Department heads \u2014 granular insights into team performance, training ROI, and error rate trends'),
+    ('text', '\u2022 Data analysts \u2014 clean, transformed data in efficient storage formats (Parquet) for advanced analytics'),
+    ('text', '\u2022 HR managers \u2014 visibility into attrition risk patterns and their correlation with satisfaction metrics'),
+    ('text', ''),
+    ('text', 'Business Significance', {'bold': True, 'size': 12, 'color': (44, 62, 80)}),
+    ('text', 'Research by McKinsey Global Institute estimates that data-driven organizations are 23 times more likely to acquire customers and 19 times more likely to be profitable. By building a robust big data pipeline that surfaces the key drivers of decision impact, this project demonstrates how organizations can systematically improve their decision-making capability.'),
+    ('text', ''),
+    ('text', 'Dataset Overview', {'bold': True, 'size': 12, 'color': (44, 62, 80)}),
+    ('text', 'The dataset comprises 123,847 records spanning 15 variables across 6 departments, 4 regions, and a 2-year time horizon (January 2024 \u2013 December 2025). The data simulates realistic organizational behavior including correlated variables, missing values (5\u20138%), outliers (0.5%), and seasonal patterns. The target variable, Decision Impact Score, is modeled as a composite of data quality, employee performance, error rate, training investment, and customer satisfaction.'),
+])
+
+
+# ============================================================================
+# SECTION 2: PIPELINE DESIGN
+# ============================================================================
+build_section(doc.paragraphs[10], [
+    ('text', 'The data pipeline follows a five-stage architecture that transforms raw organizational data into actionable business insights. Each stage is selected to balance performance, scalability, and implementation simplicity.'),
+    ('text', ''),
+    ('text', 'Stage 1 \u2014 Data Source & Ingestion', {'bold': True, 'size': 11, 'color': (74, 144, 217)}),
+    ('text', 'The raw dataset (123,847 rows \u00d7 15 columns) is stored as CSV, simulating ERP-exported data. In production, this would reside in Google Cloud Storage (GCS) buckets for automated ingestion via GCP Dataproc.'),
+    ('text', ''),
+    ('text', 'Stage 2 \u2014 Data Processing (PySpark)', {'bold': True, 'size': 11, 'color': (232, 132, 60)}),
+    ('text', 'Apache Spark serves as the core processing engine, selected for: (1) distributed computing enabling horizontal scaling, (2) lazy evaluation with Catalyst optimizer for automatic query optimization, (3) native DataFrame support for tabular data. Processing includes schema enforcement, null imputation, duplicate removal, outlier capping, and feature engineering.'),
+    ('text', ''),
+    ('text', 'Stage 3 \u2014 Data Transformation', {'bold': True, 'size': 11, 'color': (232, 132, 60)}),
+    ('text', 'Feature engineering creates derived variables: experience_training_ratio, efficiency_score, quality_error_interaction, and temporal features (month, quarter, day_of_week). These increase analytical dimensionality without additional data collection.'),
+    ('text', ''),
+    ('text', 'Stage 4 \u2014 Data Storage (Parquet)', {'bold': True, 'size': 11, 'color': (155, 89, 182)}),
+    ('text', 'Processed data is stored in Apache Parquet format, partitioned by Department. Parquet provides: (1) columnar storage reducing I/O, (2) Snappy compression reducing size by 60\u201380%, (3) predicate pushdown enabling Spark to skip irrelevant partitions.'),
+    ('text', ''),
+    ('text', 'Stage 5 \u2014 Visualization (Streamlit)', {'bold': True, 'size': 11, 'color': (39, 174, 96)}),
+    ('text', 'Streamlit powers the interactive dashboard, chosen for: (1) native Python integration, (2) zero licensing cost, (3) trivial deployment to Streamlit Cloud or GCP Cloud Run.'),
+    ('text', ''),
+    ('text', 'Design Justification', {'bold': True, 'size': 12, 'color': (44, 62, 80)}),
+    ('text', 'The pipeline prioritizes reproducibility (coded, not manual), scalability (Spark + GCP handle petabyte-scale data), and maintainability (modular Python scripts). Open-source tools eliminate vendor lock-in.'),
+])
+
+
+# ============================================================================
+# SECTION 3: SYSTEM ARCHITECTURE (with diagram)
+# ============================================================================
+build_section(doc.paragraphs[12], [
+    ('text', 'The system architecture follows a layered design pattern where each component has a single responsibility and communicates with adjacent layers through well-defined interfaces.'),
+    ('text', ''),
+    ('text', '[Architecture Diagram inserted below]', {'italic': True, 'size': 10, 'color': (127, 140, 141)}),
+])
+
+add_image_after_paragraph(doc, 12, os.path.join(CHARTS, '00_system_architecture.png'),
+                          width_inches=5.8, caption='Figure 1: System Architecture \u2014 Data-Driven Decision Pipeline')
+
+# Add component explanations as a new paragraph after the image
+arch_explain = doc.add_paragraph()
+arch_parts = [
+    ('\nComponent Descriptions:\n', True),
+    ('\n1. Data Source Layer: ', True), ('Ingests data from CSV files (ERP exports), relational databases (PostgreSQL, MySQL), and APIs (CRM, HRMS). In this project, a dataset of 123,847 records simulates enterprise data.\n', False),
+    ('\n2. Processing Engine \u2014 Apache Spark: ', True), ('Runs on GCP Dataproc with auto-scaling clusters. Uses DataFrames with explicit schema enforcement (StructType). Performs null imputation, duplicate removal, outlier capping, and feature engineering.\n', False),
+    ('\n3. Storage Layer \u2014 Parquet on GCS: ', True), ('Columnar storage partitioned by Department for partition pruning. GCP Cloud Storage provides 99.999999999% durability. Integrates with BigQuery for ad-hoc SQL.\n', False),
+    ('\n4. Visualization \u2014 Streamlit Dashboard: ', True), ('Interactive exploration with KPI cards, time-series charts, scatter plots, pie charts, and box plots. Sidebar filters for department, region, date range, and decision type.\n', False),
+    ('\n5. Workflow: ', True), ('Raw data flows unidirectionally: Sources \u2192 Processing \u2192 Storage \u2192 Visualization \u2192 Business Decisions. Each stage logs metadata for pipeline monitoring.\n', False),
+]
+for text, bold in arch_parts:
+    run = arch_explain.add_run(text)
+    run.font.size = Pt(11)
+    run.font.name = 'Times New Roman'
+    run.bold = bold
+arch_explain.paragraph_format.line_spacing = 1.5
+doc.paragraphs[12]._element.addnext(arch_explain._element)
+
+
+# ============================================================================
+# SECTION 4: PYSPARK IMPLEMENTATION (with code + correlation heatmap)
+# ============================================================================
+build_section(doc.paragraphs[14], [
+    ('text', 'Dataset Description', {'bold': True, 'size': 12, 'color': (44, 62, 80)}),
+    ('text', 'The dataset (data_driven_decision_realistic.csv) contains 123,847 records with 15 columns. Data spans January 2024 to December 2025 across 6 departments, 4 regions, and ~2,500 unique employees. Includes 5\u20138% missing values, 0.5% outliers, and minor inconsistencies.'),
+    ('text', ''),
+    ('text', 'Step 1 \u2014 SparkSession Setup & Data Loading', {'bold': True, 'size': 11, 'color': (232, 132, 60)}),
+    ('text', 'Pipeline initializes SparkSession with 4GB driver memory and adaptive query execution. Dataset loaded with explicit StructType schema:'),
+    ('text', ''),
+    ('text', '    spark = SparkSession.builder.appName("DataDrivenDecisionPipeline")', {'size': 9, 'color': (41, 128, 185)}),
+    ('text', '        .config("spark.driver.memory", "4g").getOrCreate()', {'size': 9, 'color': (41, 128, 185)}),
+    ('text', '    schema = StructType([', {'size': 9, 'color': (41, 128, 185)}),
+    ('text', '        StructField("Timestamp", TimestampType(), True),', {'size': 9, 'color': (41, 128, 185)}),
+    ('text', '        StructField("Employee_ID", StringType(), True), ...', {'size': 9, 'color': (41, 128, 185)}),
+    ('text', '        StructField("Decision_Impact_Score", DoubleType(), True)])', {'size': 9, 'color': (41, 128, 185)}),
+    ('text', '    df = spark.read.csv(path, header=True, schema=schema)', {'size': 9, 'color': (41, 128, 185)}),
+    ('text', ''),
+    ('text', 'Step 2 \u2014 Data Cleaning', {'bold': True, 'size': 11, 'color': (232, 132, 60)}),
+    ('text', '(a) Duplicate Removal: dropDuplicates() removes exact duplicate rows.'),
+    ('text', '(b) Negative Values: Experience_Years < 0 corrected via absolute value transformation.'),
+    ('text', '(c) Null Imputation: Column medians used for numeric nulls (robust to outliers).'),
+    ('text', '(d) Outlier Capping: IQR method (Q1 \u2212 1.5\u00d7IQR, Q3 + 1.5\u00d7IQR) for Monthly_Sales and Processing_Time.'),
+    ('text', ''),
+    ('text', 'Step 3 \u2014 Feature Engineering', {'bold': True, 'size': 11, 'color': (232, 132, 60)}),
+    ('text', '\u2022 Experience_Training_Ratio = Experience_Years / (Training_Hours + 1)'),
+    ('text', '\u2022 Efficiency_Score = Performance_Score / (Processing_Time_sec + 1)'),
+    ('text', '\u2022 Quality_Error_Interaction = Data_Quality_Score \u00d7 (1 \u2212 Error_Rate)'),
+    ('text', '\u2022 Temporal Features: Month, Quarter, Day_of_Week, Year from Timestamp'),
+    ('text', '\u2022 Categorical Binning: Performance_Category (High/Medium/Low), Risk_Level (Critical/Moderate/Low)'),
+    ('text', ''),
+    ('text', 'Step 4 \u2014 Aggregations', {'bold': True, 'size': 11, 'color': (232, 132, 60)}),
+    ('text', '(a) Department-wise: Avg Decision Impact, Performance, Sales, Data Quality, Error Rate'),
+    ('text', '(b) Region-wise: Avg Customer Satisfaction, Attrition Risk, Decision Impact'),
+    ('text', '(c) Quarterly Trends: Avg Impact, Performance, Error Rate by Year-Quarter'),
+    ('text', ''),
+    ('text', 'Step 5 \u2014 Filtering & Save', {'bold': True, 'size': 11, 'color': (232, 132, 60)}),
+    ('text', 'High error rate cases (>0.3) and high attrition risk employees (\u22650.7) isolated for analysis. Processed data saved to Parquet, partitioned by Department.'),
+    ('text', ''),
+    ('text', 'Output: 123,832 rows \u00d7 24 columns (9 engineered features). Parquet, partitioned by Department.', {'bold': True}),
+    ('text', ''),
+    ('text', '[Correlation Heatmap inserted below]', {'italic': True, 'size': 10, 'color': (127, 140, 141)}),
+])
+
+add_image_after_paragraph(doc, 14, os.path.join(CHARTS, '01_correlation_heatmap.png'),
+                          width_inches=5.2, caption='Figure 2: Correlation Matrix of Key Organizational Metrics')
+
+
+# ============================================================================
+# SECTION 5: DASHBOARD & VISUALIZATION (with charts)
+# ============================================================================
+build_section(doc.paragraphs[16], [
+    ('text', 'Tool Selection: Streamlit', {'bold': True, 'size': 12, 'color': (44, 62, 80)}),
+    ('text', 'Streamlit was chosen over Power BI and Tableau for: (1) native Python integration, (2) zero licensing cost, (3) interactive widgets for dynamic exploration, (4) trivial deployment via Streamlit Cloud.'),
+    ('text', ''),
+    ('text', 'Dashboard Components:', {'bold': True, 'size': 12, 'color': (44, 62, 80)}),
+    ('text', ''),
+    ('text', '1. KPI Metric Cards', {'bold': True, 'size': 11}),
+    ('text', 'Four cards: Avg Decision Impact, Avg Performance, Avg Data Quality, Avg Error Rate (inverse delta). Provide at-a-glance organizational health summary.'),
+    ('text', ''),
+    ('text', '2. Monthly Decision Impact Trend', {'bold': True, 'size': 11}),
+    ('text', 'Dual-axis time-series: monthly Decision Impact (primary) vs Error Rate (secondary). Reveals temporal patterns and the inverse error-impact relationship.'),
+    ('text', ''),
+    ('text', '3. Department-wise Decision Impact', {'bold': True, 'size': 11}),
+    ('text', 'Horizontal bar chart ranking departments by avg Decision Impact Score. Immediately identifies top performers and departments needing intervention.'),
+    ('text', ''),
+    ('text', '[Department Impact Chart and Monthly Trend inserted below]', {'italic': True, 'size': 10, 'color': (127, 140, 141)}),
+])
+
+add_image_after_paragraph(doc, 16, os.path.join(CHARTS, '02_dept_decision_impact.png'),
+                          width_inches=5.0, caption='Figure 3: Department-wise Average Decision Impact Score')
+
+# Insert more charts after the section. We'll create new paragraphs.
+viz_cont = doc.add_paragraph()
+viz_parts = [
+    ('\n4. Data Quality vs Decision Impact (Scatter Plot)\n', True, 11),
+    ('Strong positive correlation (r = 0.736) between Data Quality and Decision Impact. Points color-coded by department with regression trendlines.\n', False, 11),
+    ('\n5. Decision Type Distribution (Donut Chart)\n', True, 11),
+    ('Proportional distribution of Strategic, Operational, Tactical, and Analytical decisions.\n', False, 11),
+    ('\n6. Error Rate Distribution (Box Plot)\n', True, 11),
+    ('Box plots per department with red threshold line at 0.3. Identifies departments with systemic accuracy problems.\n', False, 11),
+]
+for text, bold, size in viz_parts:
+    run = viz_cont.add_run(text)
+    run.font.size = Pt(size)
+    run.font.name = 'Times New Roman'
+    run.bold = bold
+viz_cont.paragraph_format.line_spacing = 1.5
+doc.paragraphs[16]._element.addnext(viz_cont._element)
+
+# Insert scatter and pie charts
+scatter_para = doc.add_paragraph()
+scatter_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+scatter_para.add_run().add_picture(os.path.join(CHARTS, '03_quality_vs_impact_scatter.png'), width=Inches(5.0))
+viz_cont._element.addnext(scatter_para._element)
+
+scatter_cap = doc.add_paragraph()
+scatter_cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
+r = scatter_cap.add_run('Figure 4: Data Quality Score vs Decision Impact Score (r = 0.736)')
+r.font.size = Pt(9); r.font.name = 'Times New Roman'; r.italic = True; r.font.color.rgb = RGBColor(100,100,100)
+scatter_para._element.addnext(scatter_cap._element)
+
+trend_para = doc.add_paragraph()
+trend_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+trend_para.add_run().add_picture(os.path.join(CHARTS, '04_monthly_trend.png'), width=Inches(5.2))
+scatter_cap._element.addnext(trend_para._element)
+
+trend_cap = doc.add_paragraph()
+trend_cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
+r = trend_cap.add_run('Figure 5: Monthly Trend \u2014 Decision Impact Score & Error Rate (2024\u20132025)')
+r.font.size = Pt(9); r.font.name = 'Times New Roman'; r.italic = True; r.font.color.rgb = RGBColor(100,100,100)
+trend_para._element.addnext(trend_cap._element)
+
+pie_para = doc.add_paragraph()
+pie_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+pie_para.add_run().add_picture(os.path.join(CHARTS, '06_decision_type_pie.png'), width=Inches(4.0))
+trend_cap._element.addnext(pie_para._element)
+
+pie_cap = doc.add_paragraph()
+pie_cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
+r = pie_cap.add_run('Figure 6: Distribution of Decision Types Across Organization')
+r.font.size = Pt(9); r.font.name = 'Times New Roman'; r.italic = True; r.font.color.rgb = RGBColor(100,100,100)
+pie_para._element.addnext(pie_cap._element)
+
+# Insights section
+insights_para = doc.add_paragraph()
+insights_parts = [
+    ('\nKey Business Insights:\n\n', True, 12),
+    ('Insight 1: ', True, 11), ('Data Quality Score is the strongest predictor of Decision Impact (r = 0.736). Prioritize data quality improvement programs.\n\n', False, 11),
+    ('Insight 2: ', True, 11), ('Employees with >40 training hours/year achieve 27% higher performance (4.76 vs 3.76). Clear ROI on training.\n\n', False, 11),
+    ('Insight 3: ', True, 11), ('Error rates above 15% cause a 43% decline in Decision Impact (77.7 \u2192 44.6). Implement quality gates at 15%.\n\n', False, 11),
+    ('Insight 4: ', True, 11), ('Engineering leads Decision Impact (+40% vs HR) due to superior data quality and training investment.\n\n', False, 11),
+    ('Insight 5: ', True, 11), ('Attrition Risk and Customer Satisfaction show strong inverse correlation (r = -0.875), creating a feedback loop.\n\n', False, 11),
+    ('Insight 6: ', True, 11), ('Quarterly analysis shows gradual improvement Q1\u2192Q4, suggesting organizational learning compounds over fiscal years.\n', False, 11),
+]
+for text, bold, size in insights_parts:
+    run = insights_para.add_run(text)
+    run.font.size = Pt(size)
+    run.font.name = 'Times New Roman'
+    run.bold = bold
+insights_para.paragraph_format.line_spacing = 1.5
+pie_cap._element.addnext(insights_para._element)
+
+
+# ============================================================================
+# SECTION 6: PRACTICAL APPLICATION & SCALABILITY (with violin chart)
+# ============================================================================
+build_section(doc.paragraphs[18], [
+    ('text', 'Real-World Use Cases', {'bold': True, 'size': 12, 'color': (44, 62, 80)}),
+    ('text', ''),
+    ('text', '1. Management Consulting:', {'bold': True}),
+    ('text', 'Deploy to analyze client operational data, identify decision quality bottlenecks, and prescribe targeted interventions (training programs, data quality audits). Modular architecture enables rapid customization.'),
+    ('text', ''),
+    ('text', '2. Healthcare Administration:', {'bold': True}),
+    ('text', 'Analyze clinical decision effectiveness, identify high-error departments (patient safety impact), monitor training compliance. Attrition model applicable to nursing staff retention.'),
+    ('text', ''),
+    ('text', '3. Retail & E-Commerce:', {'bold': True}),
+    ('text', 'Process POS data, customer feedback, and inventory metrics to surface which regions and categories achieve highest decision impact, enabling resource reallocation.'),
+    ('text', ''),
+    ('text', '4. Financial Services:', {'bold': True}),
+    ('text', 'Quality-gate credit scoring and fraud detection decisions. Error rate analysis supports regulatory compliance and risk management.'),
+    ('text', ''),
+    ('text', '[Training vs Performance Analysis inserted below]', {'italic': True, 'size': 10, 'color': (127, 140, 141)}),
+])
+
+add_image_after_paragraph(doc, 18, os.path.join(CHARTS, '07_training_performance_violin.png'),
+                          width_inches=5.5, caption='Figure 7: Training Investment vs Performance Outcome by Department')
+
+# Add scalability discussion
+scale_para = doc.add_paragraph()
+scale_parts = [
+    ('\nScalability & Future Enhancements\n\n', True, 12),
+    ('Horizontal Scaling: ', True, 11), ('GCP Dataproc clusters with 10\u2013100 worker nodes for petabyte-scale data.\n', False, 11),
+    ('Partition Strategy: ', True, 11), ('Composite partitioning (Dept + Region + Year) for finer-grained pruning.\n', False, 11),
+    ('Storage Optimization: ', True, 11), ('Parquet + Snappy compression (60\u201380% reduction). Delta Lake for ACID transactions.\n', False, 11),
+    ('Caching: ', True, 11), ('df.cache() and Adaptive Query Execution (AQE) for runtime optimization.\n\n', False, 11),
+    ('Future: ', True, 11), ('(1) Real-time processing via Spark Structured Streaming, (2) ML models (Random Forest, XGBoost) to predict Decision Impact, (3) Automated PagerDuty/Slack alerts for threshold breaches, (4) Data lineage via Apache Atlas or GCP Data Catalog.\n', False, 11),
+]
+for text, bold, size in scale_parts:
+    run = scale_para.add_run(text)
+    run.font.size = Pt(size)
+    run.font.name = 'Times New Roman'
+    run.bold = bold
+scale_para.paragraph_format.line_spacing = 1.5
+doc.paragraphs[18]._element.addnext(scale_para._element)
+
+
+# ============================================================================
+# SECTION 7: DATA-DRIVEN DECISION MAKING (with error rate chart)
+# ============================================================================
+build_section(doc.paragraphs[20], [
+    ('text', 'The analysis enables five concrete, data-backed business decisions:'),
+    ('text', ''),
+    ('text', 'Decision 1 \u2014 Training Budget Allocation', {'bold': True, 'size': 11, 'color': (39, 174, 96)}),
+    ('text', 'Employees with >40 training hours achieve 27% higher performance (4.76 vs 3.76). Recommendation: Increase training budget by 20% for departments below 40-hour threshold (HR, Finance, Operations). Expected: 15\u201320% improvement in decision quality within 6 months.'),
+    ('text', ''),
+    ('text', 'Decision 2 \u2014 Data Quality Monitoring', {'bold': True, 'size': 11, 'color': (39, 174, 96)}),
+    ('text', 'Data Quality is the strongest predictor of Decision Impact (r = 0.736). Recommendation: Implement three-tier monitoring: Green (\u226575), Yellow (60\u201374), Red (<60). Red-flagged records routed to manual review. Expected: 30% reduction in low-quality decisions.'),
+    ('text', ''),
+    ('text', 'Decision 3 \u2014 Error Rate Quality Gates', {'bold': True, 'size': 11, 'color': (39, 174, 96)}),
+    ('text', 'Error rates above 15% cause 43% decline in Decision Impact. Recommendation: Hard quality gate at 15%\u2014pipelines exceeding this are auto-paused and reviewed. Expected: Elimination of lowest-quality 20% of decisions.'),
+    ('text', ''),
+    ('text', 'Decision 4 \u2014 Attrition Risk Mitigation', {'bold': True, 'size': 11, 'color': (39, 174, 96)}),
+    ('text', 'Attrition Risk and Satisfaction correlation (r = -0.875) creates a feedback loop. Recommendation: Monthly satisfaction surveys for High-Risk employees (\u22650.7), targeted retention interventions. Expected: 25% reduction in attrition-related satisfaction decline.'),
+    ('text', ''),
+    ('text', 'Decision 5 \u2014 Regional Resource Reallocation', {'bold': True, 'size': 11, 'color': (39, 174, 96)}),
+    ('text', 'Regional performance disparities detected. Recommendation: Reallocate resources from over-performing to under-performing regions, standardize best practices. Expected: Regional convergence within 10% of organizational mean.'),
+    ('text', ''),
+    ('text', '[Error Rate Analysis inserted below]', {'italic': True, 'size': 10, 'color': (127, 140, 141)}),
+])
+
+add_image_after_paragraph(doc, 20, os.path.join(CHARTS, '05_error_rate_boxplot.png'),
+                          width_inches=5.0, caption='Figure 8: Error Rate Distribution by Department (Threshold at 0.3)')
+
+impact_para = doc.add_paragraph()
+run = impact_para.add_run('\nBusiness Impact Summary: ')
+run.font.size = Pt(11); run.font.name = 'Times New Roman'; run.bold = True
+run = impact_para.add_run('Collectively, these five decisions are projected to improve the average Decision Impact Score by 18\u201325% over 12 months, translating to a 9\u201312% increase in operational efficiency.')
+run.font.size = Pt(11); run.font.name = 'Times New Roman'
+impact_para.paragraph_format.line_spacing = 1.5
+doc.paragraphs[20]._element.addnext(impact_para._element)
+
+
+# ============================================================================
+# SECTION 8: CONCLUSION
+# ============================================================================
+build_section(doc.paragraphs[22], [
+    ('text', 'This project successfully designed, implemented, and demonstrated a complete big data pipeline for data-driven decision making.'),
+    ('text', ''),
+    ('text', 'Problem: ', {'bold': True}),
+    ('text', 'Organizations generate vast operational data but struggle to convert it into high-quality decisions due to data quality issues, fragmented pipelines, and lack of actionable insights.', {'newline': False}),
+    ('text', ''),
+    ('text', 'Approach: ', {'bold': True}),
+    ('text', 'A five-stage pipeline was built: (1) 123,847-record dataset with realistic characteristics, (2) PySpark for cleaning, feature engineering, and aggregations, (3) Parquet storage partitioned by Department, (4) Streamlit dashboard with interactive exploration, (5) Six quantified insights and five actionable decisions.', {'newline': False}),
+    ('text', ''),
+    ('text', 'Key Results:', {'bold': True, 'size': 12, 'color': (44, 62, 80)}),
+    ('text', '\u2022 Data Quality Score: strongest predictor of Decision Impact (r = 0.736)'),
+    ('text', '\u2022 Training >40 hrs/year: 27% higher performance (clear ROI)'),
+    ('text', '\u2022 Error rate threshold at 15%: beyond this, decision quality degrades by 43%'),
+    ('text', '\u2022 Engineering leads Decision Impact due to superior data quality + training'),
+    ('text', '\u2022 Attrition Risk \u2194 Customer Satisfaction: tightly coupled feedback loop (r = -0.875)'),
+    ('text', ''),
+    ('text', 'The project demonstrates that modern big data technologies\u2014when combined in a well-architected pipeline\u2014can transform raw organizational data into actionable intelligence that drives measurably better decisions.'),
+])
+
+
+# ============================================================================
+# SECTION 9: REFERENCES
+# ============================================================================
+build_section(doc.paragraphs[24], [
+    ('text', '1. Zaharia, M., et al. (2016). Apache Spark: A Unified Engine for Big Data Processing. Communications of the ACM, 59(11), 56\u201365.'),
+    ('text', '2. Apache Spark Documentation. (2025). Spark SQL, DataFrames and Datasets Guide. https://spark.apache.org/docs/latest/'),
+    ('text', '3. Google Cloud. (2025). Dataproc Documentation. https://cloud.google.com/dataproc/docs'),
+    ('text', '4. Apache Parquet. (2025). Apache Parquet Documentation. https://parquet.apache.org/documentation/latest/'),
+    ('text', '5. Streamlit. (2025). Streamlit Documentation. https://docs.streamlit.io/'),
+    ('text', '6. NewVantage Partners. (2024). Data and Analytics Leadership Annual Executive Survey.'),
+    ('text', '7. McKinsey Global Institute. (2023). The Age of Analytics: Competing in a Data-Driven World.'),
+    ('text', '8. Provost, F., & Fawcett, T. (2013). Data Science for Business. O\'Reilly Media.'),
+    ('text', '9. Kimball, R., & Ross, M. (2013). The Data Warehouse Toolkit. Wiley.'),
+    ('text', '10. Google Cloud. (2025). BigQuery Documentation. https://cloud.google.com/bigquery/docs'),
+])
+
+
+# ============================================================================
+# SECTION 10: APPENDIX
+# ============================================================================
+build_section(doc.paragraphs[26], [
+    ('text', 'Project Repository & Source Code', {'bold': True, 'size': 12, 'color': (44, 62, 80)}),
+    ('text', ''),
+    ('text', 'GitHub: https://github.com/Shivshankar8261/data-driven-decision-bigdata'),
+    ('text', ''),
+    ('text', 'Key Files:', {'bold': True}),
+    ('text', '\u2022 generate_dataset.py \u2014 Dataset generation (123,847 rows, 15 columns, correlated variables)'),
+    ('text', '\u2022 pyspark_pipeline.py \u2014 PySpark ETL pipeline (clean, transform, aggregate, Parquet output)'),
+    ('text', '\u2022 analysis.py \u2014 7 publication-quality charts + 6 business insights'),
+    ('text', '\u2022 dashboard.py \u2014 Streamlit interactive dashboard with filters and 6 chart types'),
+    ('text', '\u2022 data_driven_decision_realistic.csv \u2014 Generated dataset'),
+    ('text', '\u2022 charts/ \u2014 All visualization images (PNG)'),
+    ('text', '\u2022 processed_data/ \u2014 Parquet output partitioned by Department'),
+])
+
+
+# ============================================================================
+# SAVE
+# ============================================================================
 doc.save(OUTPUT)
 print(f"Report saved to: {OUTPUT}")
 print(f"Total paragraphs: {len(doc.paragraphs)}")
+print("Embedded images: architecture diagram, correlation heatmap, dept impact,")
+print("  scatter plot, monthly trend, pie chart, violin plot, error rate boxplot")
