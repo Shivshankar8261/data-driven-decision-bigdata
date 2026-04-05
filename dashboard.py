@@ -151,8 +151,16 @@ with r2c1:
     sample = filtered.sample(n=min(3000, len(filtered)), random_state=42)
     fig = px.scatter(sample, x='Data_Quality_Score', y='Decision_Impact_Score',
                      color='Department', opacity=0.5, size_max=8,
-                     trendline='lowess', color_discrete_sequence=px.colors.qualitative.Set2)
-    fig.update_traces(selector=dict(mode="lines"), line_width=2)
+                     color_discrete_sequence=px.colors.qualitative.Set2)
+    x_all = sample['Data_Quality_Score'].dropna().values
+    y_all = sample['Decision_Impact_Score'].dropna().values
+    if len(x_all) > 2:
+        z = np.polyfit(x_all, y_all, 1)
+        x_line = np.linspace(x_all.min(), x_all.max(), 100)
+        y_line = np.polyval(z, x_line)
+        fig.add_trace(go.Scatter(x=x_line, y=y_line, mode='lines',
+                                 name=f'Trend (slope={z[0]:.2f})',
+                                 line=dict(color='#e74c3c', width=3, dash='dash')))
     fig.update_layout(height=420, margin=dict(t=30, b=30),
                       legend=dict(orientation="h", y=-0.15))
     st.plotly_chart(fig, use_container_width=True)
